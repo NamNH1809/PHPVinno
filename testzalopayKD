@@ -1,32 +1,7 @@
 <?php
-function execPostRequest($url, $data)
-{
-	$ch = curl_init($url);
-	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-	    'Content-Type: application/json',
-	    'Content-Length: ' . strlen($data))
-	);
-	curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-
-	//execute post
-	$result = curl_exec($ch);
-	$err = curl_error($ch);
-
-	//close connection
-	curl_close($ch);
-	if ($err)
-		echo "cURL Error #:" . $err;
-	else
-		return $result;
-}
 
 function postCurl($url, $params, $second = 30) 
 {
-
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_TIMEOUT, $second);
 
@@ -53,32 +28,34 @@ function postCurl($url, $params, $second = 30)
 }
 
 	$endpoint = 
-	"https://sandbox.zalopay.com.vn/v001/tpe/getstatusbyapptransid";//"https://stg.zalopay.com.vn/v001/tpe/createorder";//
-	$gateway = "https://sbgateway.zalopay.vn/pay?order=";//"https://stggateway.zalopay.vn/pay?order=";// 
+	"https://sandbox.zalopay.com.vn/v001/tpe/getstatusbyapptransid";
+	//"https://stg.zalopay.com.vn/v001/tpe/createorder";//
+	$gateway = "https://sbgateway.zalopay.vn/pay?order=";
+	//"https://stggateway.zalopay.vn/pay?order=";// 
 
 	$key1 = 'YhEahsbviSfzwSCDXiE3kCLDkLL2GDha';
 	$key2 = 'GhJUizqyV3uS37R6DZ3mGR5UnIwa26vt';
 	$appid = 3;
+
+	//Điền dữ liệu đơn hàng để ZaloPay hiển thị lên giao diện thanh toán
 	$apptransid = date('ymd')."".time();
-	$apptransid2 = date('ymd')."".time();
-	//Điền dữ liệu đơn hàng để ZaloPay hiển thị lên giao diện thanh toán.
 	$appuser = 'Kim_Dong';
-	/*if (!empty($order->billing_first_name) || !empty($order->billing_last_name))
-		$appuser = $order->billing_first_name.' '.$order->billing_last_name;
-	else if (!empty($order->->delivery_first_name) || !empty($order->delivery_last_name))
-		$appuser = $order->delivery_first_name.' '.$order->delivery_last_name;*/
-	$amount = "10000"; //strval($order->order_total); 
+	$amount = "10000"; 
 	$apptime = time()."";
-	$apptime2 = time()."";
 	
 	$merchant_data = array();
 	$embeddata = json_encode($merchant_data);
-	$item = Array();
+	$item = Array(
+		"itemid" => "KD0527",
+		"itemname" => "Doraemon",
+		"itemquantity" => "1",
+		"itemprice" => "10000".
+	);
 	$items = json_encode($item);
 
 	$hmac_input = $appid ."|". $apptransid ."|". $appuser ."|". $amount ."|". $apptime ."|". $embeddata ."|".$items;
 	$mac = hash_hmac("sha256", $hmac_input, $key1);
-	//echo "\n  ".$hmac_input."   \n";
+	echo "mac_input: ".$hmac_input." </br>";
 	
 	$description = "NXB Kim Dong";
 	$phone = '09090909009';
@@ -97,23 +74,15 @@ function postCurl($url, $params, $second = 30)
             'mac' => $mac,            
         );
 
-	$data_gateway = array(
-            'appid' => $appid,
-            'apptransid' => $apptransid2,            
-            'appuser' => $appuser,
-            'apptime' => $apptime2, 
-            'item' => $items, 
-            'description' => $description, 
-            'embeddata' => $embeddata,
-            'amount' => $amount,
-            'mac' => $mac,            
-        );
-	//$arr = array(appid=1&apptransid=160405095135-57032837085b5&appuser=pmqc&apptime=1459823610957&description=Mua kim nguyên bảo cho game VLTK&embeddata={\"promotioninfo\":\"{\\\"campaigncode\\\":\\\"yeah\\\"}\",\"merchantinfo\":\"embeddata123\"}&item=[{\\\"itemid\\\":\\\"knb\\\",\\\"itemname\\\":\\\"kim nguyen bao\\\",\\\"itemquantity\\\":10,\\\"itemprice\\\":50000}]&amount=500000&&mac=28ecee91f4b32aa1306812f5d74c4ed1f7cbce7b4f2848cf06f23933ae8027e0 
+//-------------------------------------------------------------------------------------------------------------
+//- Theo huong dan trong API https://developers.zalopay.vn/docs/webtoapp/index.html#ti-p-nh-n-thong-tin-d-n-hang
+//-------------------------------------------------------------------------------------------------------------
+
 	$strdata = http_build_query($data);
 	//$result = execPostRequest($endpoint, $strdata);
 	$result = postCurl($endpoint, $strdata);
 	$jsonResult = json_decode($result,true);
-	//echo "\n".$strdata;
+	echo "jsonResult: ";
 	print_r($jsonResult);
 	echo "<br/>";
 	if ($jsonResult && isset($jsonResult['returncode']) && $jsonResult['returncode'] == 1)
@@ -127,29 +96,31 @@ function postCurl($url, $params, $second = 30)
 
         $urlEncode = urlencode($base64Encode);
         $redirectUrl = $gateway . $urlEncode;
-        echo $redirectUrl;
+        echo "redirectUrl theo cach 1: ";echo $redirectUrl;
 	}
+//-------------------------------------------------------------------------------------------------------------
+//- Theo huong dan trong API https://developers.zalopay.vn/docs/gateway/index.html#t-o-d-li-u-xac-th-c-cho-d-n-hang
+//-------------------------------------------------------------------------------------------------------------
+	$apptransid2 = date('ymd')."".time();
+	$apptime2 = time()."";	
+	$data_gateway = array(
+        'appid' => $appid,
+        'apptransid' => $apptransid2,            
+        'appuser' => $appuser,
+        'apptime' => $apptime2, 
+        'item' => $items, 
+        'description' => $description, 
+        'embeddata' => $embeddata,
+        'amount' => $amount,
+        'mac' => $mac,            
+    );
 
 	$strdata_gateway = http_build_query($data_gateway);
 	$json_gateway = json_encode($strdata_gateway);
 	$base64Encode_gateway = base64_encode($json_gateway);
 	$urlEncode_gateway = urlencode($base64Encode_gateway);
 	$redirectUrl_gateway = $gateway . $urlEncode_gateway;
-	echo '<br/>'.$redirectUrl_gateway;
+	echo '<br/>redirectUrl theo cach 2: '.$redirectUrl_gateway;
 
-	$endpoint_bank = "https://sbgateway.zalopay.vn/api/getlistmerchantbanks";
-	$reqtime = time().'';
-	$rawhash = $appid.'|'.$reqtime;
-	$mac_bank = hash_hmac("sha256", $rawhash, $key1);
-	$data_bank = array(
-		"appid" => $appid,
-		"reqtime" => $reqtime,
-		"mac" => $mac_bank,
-	);
-	$json_bank = json_encode($data_bank);
-	$result_bank = postCurl($endpoint_bank, $json_bank);
-	$jsonResult_bank = json_decode($result,true);
-	echo "<br/>";
-	print_r($jsonResult_bank);
 
 ?>
