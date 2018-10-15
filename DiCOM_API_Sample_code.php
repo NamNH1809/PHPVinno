@@ -65,8 +65,7 @@ function dicom_service_runtest()
    if ($obj_cookie && isset($obj_cookie->sessid) && isset($obj_cookie->session_name) && isset($obj_cookie->token))
     {
     	//Tạo data chứa tham số tạo log thiết bị
-      $input_data = array(
-        'equipment_id' => 24652,
+      $input_data = array(        
         'error_type' => 'HIGH_TEMP', 
         'status' => TRUE,
         'cpu' => 'CHAOS CORE 1.4',
@@ -84,7 +83,8 @@ function dicom_service_runtest()
       $header_input[] = 'Content-Type: application/json';
       $header_input[] = 'X-CSRF-Token:'.$obj_cookie->token;
       $header_input[] = 'Cookie: '.$obj_cookie->session_name.'='.$obj_cookie->sessid;
-
+	
+	//Hệ thống sẽ tự tìm thiết bị dựa trên IP client của thiết bị request   
       $result_input = dicom_service_testpostCurl($url_create,$json_data_input,$header_input);
       $arr_result = json_decode($result_input);
       echo $arr_result[0];
